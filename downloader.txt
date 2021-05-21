@@ -1,0 +1,68 @@
+#SW
+
+
+import urllib.request, urllib.parse, urllib.error
+import json
+import datetime, pandas
+import pymongo
+
+client = pymongo.MongoClient('mongodb+srv://dbUser:dbUser1@cluster0.1zhzd.mongodb.net/<dbname>?retryWrites=true&w=majority')
+earthquakeURL =  "http://earthquake.usgs.gov/fdsnws/event/1/query?"
+
+## given 2012-2014, 4+
+paramD = dict()
+paramD["format"] = "geojson"                                     # the format the data will be in
+paramD["starttime"] = "2012-01-01T00:00:00"                      # the minimum date/time that might be retrieved
+paramD["endtime"] = "2014-12-31T23:59:59"                        # the maximum date/time that might be retrieved
+paramD["minmag"] = 4                                             # the smallest earthquake magnitude to return
+paramD["limit"] = 0 #changed to 0 because Atlas has 5000 entries,# the maximum number of earthquakes to return
+paramD["endtime"]                                                #endtime          # starts with the most recent
+
+db = client['earthquakedb']
+collection_earthquakes = db['earthquakes'] 
+data1 = db.collection_earthquakes.find_one()
+earth_quake_time = data1['properties']['time']
+dt3 = datetime.datetime.fromtimestamp(earth_quake_time / 1000)
+result=pandas.to_datetime(dt3)
+str(result)
+endtime = result.replace(microsecond=0).isoformat() #asks for time in ISO
+paramD["endtime"] = endtime #Reset the paramD endtime dictionary value to be this new endtime.
+
+print(endtime) #as requested step2
+
+params = urllib.parse.urlencode(paramD)
+print('Retrieving: ', earthquakeURL+params)
+uh = urllib.request.urlopen(earthquakeURL+params)
+data = uh.read().decode()
+
+earth_count = 0
+try:
+    #print(data)
+    js = json.loads(data)
+except:
+    print("Error loading data")
+    js = None        
+if not js or 'type' not in js :
+    print('==== Failure To Retrieve ====')
+    print(data)
+
+meta_data = js['metadata']
+earth_count = meta_data['count'] #holder for count 
+print(earth_count) #as requested step1
+features_array = js['features']
+
+print("loop through data: ")
+
+for doc in features_array:
+        try:
+            #print(doc)
+            db.collection_earthquakes.insert_one(doc)
+        except:
+            print('Error')
+            continue
+
+print("Earthquakes uploaded to cluster for examination")
+# flist = eq["features"] #IF YOU NEED TO SEE DATA 
+# pprint.pprint(flist)
+# # pprint.pprint(eq["count"])
+     

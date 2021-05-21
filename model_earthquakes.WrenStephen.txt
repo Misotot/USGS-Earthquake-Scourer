@@ -1,0 +1,117 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Sat Oct 24 10:27:34 2020
+@author: SW
+"""
+import sqlite3
+import pymongo
+
+uri = "mongodb+srv://dbUser:dbUser1@cluster0.1zhzd.mongodb.net/<dbname>?retryWrites=true&w=majority"
+client = pymongo.MongoClient(uri)
+db = client['earthquakedb']
+collection_earthquakes = db['collection_earthquakes'] 
+
+con = sqlite3.connect('index.sqlite')
+cur = con.cursor()
+cur.executescript('''DROP TABLE IF EXISTS quake;
+CREATE TABLE quake (
+    eqid  TEXT NOT NULL PRIMARY KEY UNIQUE,
+    magnitude  REAL, 
+    time    INTEGER,    
+    depth   REAL,
+    place    TEXT,
+    title    TEXT, 
+    felt  INTEGER,
+    tsunami INTEGER,
+    region TEXT
+    )
+''')
+
+## Lines 31-94 are interpreted from another student,  Justin Baltz (I reviewed his code for peer review), code for this assignment. 
+word_dict1 = ['Atlantic', 'atlantic', 'Pacific', 'pacific', 'Region', 'region', 'mid', 'Mid', 'Middle', 'middle', 'Central', 'central']
+
+word_dict2 = ['North', 'north', 'Northern', 'nothern', 'Northwest','northwest', 'Northeast','northeast'
+              'East', 'east', 'Eastern', 'eastern', 'West', 'west', 'western', 'Western', 'South', 'south', 
+              'Southeast', 'southeast', 'Southwest','southwest', 'Southern', 'southern', "south of the", "South of the", "North of the", 
+              "north of the", "East of the", "east of the", "west of the", "West of the"]
+
+##I added a state abbreviation list from an Excel s/s I found online and then adapted it and added more definitions 
+acro   =    {"AL":"Alabama", "AK":"Alaska", "AZ":"Arizona", "AR":"Arkansas", "CA":"California",
+             "CO":"Colorado", "CT":"Conneticut", "DC":"Washington, DC", "DE":"Delaware", "FL":"Florida",
+             "GA":"Georgia", "HI":"Hawaii", "ID":"Idaho", "IL":"Illinois", "IN":"Indiana", "IA":"Iowa",
+             "KS":"Kansas", "KY":"Kentucky", "LA":"Louisiana", "ME":"Maine", "MD":"Maryland", 
+             "MA":"Massachusetts", "MI":"Michigan", "MN":"Minnesota", "MS":"Mississippi", "MO":"Missouri", "MT":"Montana",
+             "NE":"Nebraska", "NV":"Nevada", "NH":"New Hampshire", "NJ":"New Jersey", "NM":"New Mexico", "NY":"New York",
+             "NC":"North Carolina", "ND":"North Dakota", "OH":"Ohio", "OK":"Oklahoma", "OR":"Oregon", "PA":"Pennsylvania", 
+             "RI":"Rhode Island", "SC":"South Carolina", "SD":"South Dakota", "TN":"Tennessee", "TX":"Texas", "UT":"Utah",
+             "VT":"Vermont", "VA":"Virginia", "WA":"Washington", "WV":"West Virginia", "WI":"Wisconsin", "WY":"Wyoming",
+             "Fiji Islands":"Fiji", "Fiji region":"Fiji", "PNG":"Papua New Guinea","HN":"Honduras","CL":"Chile","Pacific-Antartic-Ridge":"Antartica"}
+
+
+##cleaner program, broken into three segments
+def region_cleaner(place):
+## starts with everything after ", " the comma, row by row
+    location = place + ""
+    if(location.find(", ") > 0):
+        rlist = location.split(", ")
+        location = rlist[ len(rlist)-1]
+##Takes any row with a word in the 1st dict and replaces it with a blank space
+        for area in word_dict1:
+            if(location.find(area) > 0):
+                location = location.replace(area, "")
+                break
+##Takes any row with any directional word in the row out and replaces w/blank space
+            for area in word_dict2:
+                if(location.find(area + " of") > 0):
+                    location = location.replace(area + " of", "")
+                    break
+##Takes any row with abbreviated def and replaces with something better
+##    location = location.replace(name[acro])
+    location = location.strip()
+    for name in acro:
+        if location == name:
+            if "CA" in name:
+                 print(acro[name])
+            location == acro[name]
+    return location
+
+##pulls specific data from db according to our params
+cnt = 0    
+cursor = collection_earthquakes.find()
+for f in cursor:
+    eqid = f["id"]
+    depth = float(f["geometry"]["coordinates"][2])
+    magnitude = float(f["properties"]["mag"])
+    time = int(f["properties"]["time"])
+    title = f['properties']["title"]
+    place = f["properties"]["place"]
+    
+    felt = 0
+    tsunami = 0
+    try: 
+        felt = int(f["properties"]["felt"])
+        tsunami = int(f["properties"]["tsunami"])
+    except:
+        tsunami = 0
+##apply filter/cleaner against place 
+    region = region_cleaner(place)
+##insert/replace into newwly createed tables
+    cur.execute('''INSERT OR REPLACE INTO quake
+        (eqid, magnitude, time, depth, place, title, felt, tsunami, region) 
+        VALUES ( ?, ?, ?, ?, ?, ?, ?, ?, ?)''', 
+        (eqid, magnitude, time, depth, place, title, felt, tsunami, region))
+#print out some data every 100 submissions     
+    if cnt % 100 == 0:
+        print(cnt, title)
+        con.commit()
+    cnt += 1
+con.commit()
+print("Done")
+con.close()
+
+
+
+
+
+    
+

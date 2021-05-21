@@ -1,0 +1,59 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Sun Nov 15 10:55:09 2020
+
+@author: SW
+"""
+
+import sqlite3
+import numpy as np 
+import matplotlib.pyplot as plt
+plt.style.use('classic')
+
+conn = sqlite3.connect('index.sqlite')
+conn.text_factory = str
+cur = conn.cursor()
+
+placecounts = dict()
+regioncounts = dict ()
+mag = []
+felt = []
+depth = []
+
+for row in cur.execute("SELECT * FROM quake"):
+    if row[4] in placecounts:
+        placecounts[row[4]] += 1
+    else: 
+        placecounts[row[4]] = 1
+        
+    if row[8] in regioncounts:
+        regioncounts[row[8]] +=1
+    else:
+        regioncounts[row[8]] = 1
+        
+    mag.append(row[1])
+    felt.append(row[6])
+    depth.append(row[3])
+    
+depth_np = np.array(depth)
+fig, ax = plt.subplots(figsize =(10, 7))
+ax.hist(depth_np, bins = [0, 25, 50, 75, 100])
+plt.title('Depth')
+plt.ylabel('y - axis')
+plt.xlabel('x - axis')
+plt.savefig("test.png")
+plt.show()
+
+mag_np = np.array(mag)
+fig, ax = plt.subplots(figsize =(10, 7))
+ax.hist(mag, bins = [4, 5, 6, 7, 8, 9])
+plt.ylabel('y - axis')
+plt.xlabel('x - axis')
+plt.title('Mag')
+#plt.axis([-0.1, 5.1, -1, 120])
+plt.savefig('quake_fig.png')
+plt.show()
+
+
+
+plt.savefig('region')

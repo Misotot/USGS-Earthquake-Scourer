@@ -1,0 +1,60 @@
+"""
+Made by SW
+
+"""
+
+
+from Earthquake import Earthquake
+import pandas as pd
+import sqlite3
+
+#input validation to require imput between 1-20
+while True: 
+    try:
+        howmany = int(input("How many earthquakes would you like to see?: "))
+    except:
+        print("Please enter a value between 1-20: ")
+        continue
+    if howmany <1 or howmany > 20:
+        print("Please enter a value between 1-20: ")
+    else:
+        break
+
+
+#connect to our Sqlite file
+conn= sqlite3.connect('index.sqlite')
+#return as a string 
+conn.text_factory = str
+#connect cursor
+cur = conn.cursor()
+cur.execute('SELECT * FROM earthquakedb where depth is not null')
+EarthquakeList = []
+
+for quake in cur : 
+    
+    eid = quake[0]
+    mag = quake[1]
+    time = quake[2]
+    depth = quake[3]
+    place = quake[4]
+    title = quake[5]
+    felt = quake[6]
+    region = quake[7]
+    
+    EarthquakeList.append(Earthquake(eid, mag, time, depth, place, title, felt, region))
+
+
+#calls dict method of Earthquake for dataframe    
+df = pd.DataFrame([x.as_dict() for x in EarthquakeList])
+
+print('\nThe first 5 earthquakes in the dataframe are: \n\n', df.head())
+print('\nStatistics for all earthquakes: \n\n', df.describe())
+
+#felt is a bool
+feltData = df[df['felt'] == 1]
+print('\nStatistics for all earthquakes that were felt and are greater than a 4.0 magnitude: \n\n', )
+
+#data on depths more than 100
+depthData = df[df['depth'] <100]
+print('\nStatistitcs for all earthquakes with a depth less than 100 and a magnitude greater than 4.0:\n\n', depthData.describe())
+

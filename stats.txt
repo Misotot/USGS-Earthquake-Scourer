@@ -1,0 +1,102 @@
+# -*- coding: utf-8 -*-
+"""
+Python program to calculate basic statistics about a sample of earthquakes
+Created on Sat Dec 15 10:00:02 2018 by SW
+
+
+"""
+
+
+import sys, sqlite3
+import numpy as np 
+
+howmany = int(input("How many earthquakes should  be shown? "))
+if howmany <1 or howmany >20:
+    print("Error: Please enter a number 1-20")
+    sys.exit()
+    
+conn = sqlite3.connect('index.sqlite')
+conn.text_factory = str
+cur = conn.cursor()
+
+placecounts = dict()
+regioncounts = dict()
+mag = []
+felt = []
+depth = []
+
+for row in cur.execute("SELECT * FROM quake"):
+    if row[4] in placecounts:
+        placecounts[row[4]] +=1
+    else:
+        placecounts[row[4]] = 1
+    if row [7] in regioncounts:
+        regioncounts[row[8]] += 1
+    else:
+        regioncounts[row[8]] = 1
+    
+    mag.append(row[1])
+    felt.append(row[6])
+    depth.append(row[3])
+    
+print('')
+print('Top', howmany, 'earthquake places')
+
+
+#Print's out top Earthquake places
+x = sorted(placecounts, key = placecounts.get, reverse = True)
+for k in x[:howmany]:
+    print(k, placecounts[k])
+    if placecounts[k] <10 : break
+
+print('\nTop', howmany, 'earthquake regions')
+x = sorted(regioncounts, key = regioncounts.get, reverse = True)
+for k in x[:howmany]:
+    print(k, regioncounts[k])
+    if regioncounts[k] < 10 : break
+
+num_earthquakes = len(mag)
+print("\nNUm earthquakes ", num_earthquakes)
+
+biggest_quake = max(mag)
+print("\nBiggest magnitude earthquake ", biggest_quake)
+
+quake_mean = np.mean(mag)
+print("\nMean quake magnitude ", quake_mean)
+
+quake_median = np.median(mag)
+print("\nMedian quake magnitude ", quake_median)
+
+quake_std = np.std(mag)
+print("\nQuake magnitude standard deviation ", quake_std)
+
+#convers felt and Tsu list to a numpy array
+
+depth_np = np.array(depth)
+depth_mask = depth_np < 50 
+
+mag_np = np.array(mag)
+mag_filtered = mag_np[depth_mask]
+
+num_earthquakes = len(mag_filtered)
+print("\nNum earthquakes where depth < 50 ", num_earthquakes)
+
+biggest_quake = max(mag_filtered)
+print("\nBiggest magnitude earthquake where depth < 50 ", biggest_quake)
+
+quake_mean = np.mean(mag_filtered)
+print("\nMean quake magnitude where depth < 50 ", quake_mean)
+
+quake_median = np.median(mag_filtered)
+print("\nMedian quake magnitude where depth < 50 ", quake_median)
+
+quake_std = np.std(mag_filtered)
+print("\nQuake magnitude standard deviation where depth < 50 ", quake_std)
+
+
+
+
+
+
+
+

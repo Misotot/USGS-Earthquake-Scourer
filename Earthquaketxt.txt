@@ -1,0 +1,46 @@
+# -*- coding: utf-8 -*-
+"""
+Made by SW
+
+"""
+
+class Earthquake:
+    
+    def __init__(self, eid, mag, time, place, title, felt, depth, region):
+        
+        self.eid = eid
+        self.magnitude = mag
+        self.time = Time(time)
+        self.depth = depth 
+        self.place = place
+        self.title = title
+        self.felt = felt
+        self.region = region 
+        
+    @property 
+    def title(self):
+        return self.__title
+    
+    @title.setter
+    def title(self, x):
+        x = str(x)
+        if x.find("M") == 0 :
+            self.__title = x
+            
+    def __repr__(self):
+        return '{earthquakeID:'+self.eid +', magnitude:'+ str(self.magnitude) +',time: '+ str(self.time) +', depth: '+ str(self.depth) +', place: '+self.place+', title: '+self.title+', felt: '+ str(self.felt) +', region: '+self.region +'}'
+    
+    def __str__(self):
+        return self.eid + ", '" +str(self.magnitude) +"', "+str(self.time) + ", " + str(self.depth)+ ", " +self.place +"," +self.title +"," +str(self.felt) + ", " +self.region
+    
+    def as_dict(self):
+        return {'id': self.eid, 'magnitude': self.magnitude, 'time': self.time, 'depth': self.depth, 'place': self.place, 'title': self.title, 'felt': self.felt, 'region': self.region}
+    
+    
+class Time:
+    def __init__(self, t):
+        self.time = t
+        
+    def __str__(self):
+        ts = datetime.datetime.fromtimestamp(int(self.time)/1000)
+        return str(ts)
